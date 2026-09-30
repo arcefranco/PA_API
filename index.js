@@ -13,6 +13,7 @@ import { empresas } from "./empresas.js";
 import { getConnection, getEmpresa } from "./helpers/getConnection.js";
 import { authAdmin } from "./middlewares/authAdmin.js";
 import { authToken } from "./middlewares/authToken.js";
+import { ultimos8, patronTelefono, coincideTelefono } from "./helpers/telefonos.js";
 
 dotenv.config();
 
@@ -79,6 +80,13 @@ app.post("/getOpByTel", authToken, async (req, res) => {
       .json({ error: "Faltan parámetros: empresa y nro_tel son obligatorios" });
   }
 
+  const ult8 = ultimos8(nro_tel);
+  if (!ult8) {
+    return res
+      .status(400)
+      .json({ error: "nro_tel debe tener al menos 8 dígitos" });
+  }
+
   const datosEmpresa = getEmpresa(empresa);
   if (!datosEmpresa) {
     return res.status(404).json({ error: `Empresa ${empresa} no encontrada` });
@@ -86,15 +94,27 @@ app.post("/getOpByTel", authToken, async (req, res) => {
 
   try {
     const sequelize = getConnection(datosEmpresa.db);
-    // El número puede estar en cualquiera de los 4 campos de teléfono
-    const operaciones = await sequelize.query(
-      `SELECT NroDocumento, Grupo, Orden FROM operaciones
-       WHERE :nro_tel IN (Telefonos, Telefonos2, Telefonos3, Telefonos4)`,
+    // 1) La base trae los candidatos: algún campo contiene esos 8 dígitos (con o sin separadores)
+    const candidatos = await sequelize.query(
+      `SELECT NroDocumento, Grupo, Orden, Telefonos, Telefonos2, Telefonos3, Telefonos4
+       FROM operaciones
+       WHERE Telefonos REGEXP :patron OR Telefonos2 REGEXP :patron
+          OR Telefonos3 REGEXP :patron OR Telefonos4 REGEXP :patron`,
       {
-        replacements: { nro_tel },
+        replacements: { patron: patronTelefono(ult8) },
         type: QueryTypes.SELECT,
       }
     );
+
+    // 2) Se queda con los que tienen algún número que TERMINA en esos 8 dígitos
+    const operaciones = candidatos
+      .filter((op) =>
+        [op.Telefonos, op.Telefonos2, op.Telefonos3, op.Telefonos4].some((campo) =>
+          coincideTelefono(campo, ult8)
+        )
+      )
+      .map(({ NroDocumento, Grupo, Orden }) => ({ NroDocumento, Grupo, Orden }));
+
     return res.json(operaciones);
   } catch (error) {
     console.error(`Error en getOpByTel (${datosEmpresa.db}):`, error.message);

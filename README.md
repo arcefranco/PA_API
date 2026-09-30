@@ -71,7 +71,9 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ### POST /getOpByTel
 
-Busca las operaciones de una empresa asociadas a un número de teléfono. El número se busca en los cuatro campos de teléfono de la operación, y debe coincidir exactamente con el formato guardado.
+Busca las operaciones de una empresa asociadas a un número de teléfono. El número se busca en los cuatro campos de teléfono de la operación.
+
+El teléfono se puede enviar en cualquier formato (con o sin guiones, espacios, paréntesis o código de área): la búsqueda compara los **últimos 8 dígitos**. Si un campo tiene varios números guardados (por ejemplo `1555-079889 / 4603-1722`), se compara contra cada uno. El número enviado debe tener al menos 8 dígitos.
 
 **Body**
 
