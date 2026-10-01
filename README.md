@@ -109,7 +109,7 @@ Carga una observación sobre una operación, identificada por su grupo y orden.
 | `grupo` | número | Grupo de la operación |
 | `orden` | número | Orden de la operación |
 | `observacion` | texto | Texto de la observación |
-| `usuario` | número | ID del usuario que carga la observación |
+| `usuario` | texto | nombre de usuario que carga la observación |
 | `marca` | número | Código de la marca (ver [Códigos de marcas](#códigos-de-marcas)) |
 
 ```json
@@ -118,7 +118,7 @@ Carga una observación sobre una operación, identificada por su grupo y orden.
   "grupo": 1234,
   "orden": 56,
   "observacion": "El cliente solicita que lo llamen por la tarde",
-  "usuario": 10,
+  "usuario": "jperez",
   "marca": 2
 }
 ```

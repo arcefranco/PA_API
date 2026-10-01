@@ -196,8 +196,13 @@ app.post("/createUser", authAdmin, async (req, res) => {
 
     return res.status(201).json({ message: "Usuario creado correctamente", id, email, nombre });
   } catch (error) {
-    console.error("Error en createUser:", error.message);
-    return res.status(500).json({ error: error.message });
+    // Sequelize resume los errores de MySQL como "Validation error"; el detalle real está en error.parent
+    const detalle = error.parent?.sqlMessage || error.message;
+    console.error("Error en createUser:", detalle);
+    if (error.name === "SequelizeUniqueConstraintError") {
+      return res.status(409).json({ error: `Dato duplicado: ${detalle}` });
+    }
+    return res.status(500).json({ error: detalle });
   }
 });
 
