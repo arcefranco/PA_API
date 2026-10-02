@@ -122,6 +122,60 @@ app.post("/getOpByTel", authToken, async (req, res) => {
   }
 });
 
+// Devuelve las operaciones (con sus teléfonos) buscando por nro_documento, por grupo Y orden, o por los tres
+app.post("/getOperacion", authToken, async (req, res) => {
+  const { empresa, nro_documento, grupo, orden } = req.body;
+  const tiene = (valor) => valor !== undefined && valor !== null && String(valor).trim() !== "";
+
+  if (!tiene(empresa)) {
+    return res
+      .status(400)
+      .json({ error: "Faltan parámetros: empresa es obligatorio" });
+  }
+
+  const porDocumento = tiene(nro_documento);
+  const porGrupoOrden = tiene(grupo) && tiene(orden);
+
+  if (tiene(grupo) !== tiene(orden)) {
+    return res
+      .status(400)
+      .json({ error: "Para buscar por grupo y orden se deben enviar ambos parámetros" });
+  }
+  if (!porDocumento && !porGrupoOrden) {
+    return res
+      .status(400)
+      .json({ error: "Faltan parámetros: enviar nro_documento y/o grupo y orden" });
+  }
+
+  const datosEmpresa = getEmpresa(empresa);
+  if (!datosEmpresa) {
+    return res.status(404).json({ error: `Empresa ${empresa} no encontrada` });
+  }
+
+  try {
+    const sequelize = getConnection(datosEmpresa.db);
+    // Si llegan los tres parámetros, se filtra por todos
+    const condiciones = [];
+    if (porDocumento) condiciones.push("NroDocumento = :nro_documento");
+    if (porGrupoOrden) condiciones.push("Grupo = :grupo AND Orden = :orden");
+    const where = condiciones.join(" AND ");
+
+    const operaciones = await sequelize.query(
+      `SELECT NroDocumento, Grupo, Orden, Telefonos, Telefonos2, Telefonos3, Telefonos4
+       FROM operaciones
+       WHERE ${where}`,
+      {
+        replacements: { nro_documento, grupo, orden },
+        type: QueryTypes.SELECT,
+      }
+    );
+    return res.json(operaciones);
+  } catch (error) {
+    console.error(`Error en getOperacion (${datosEmpresa.db}):`, error.message);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 app.post("/postObs", authToken, async (req, res) => {
   const { empresa, grupo, orden, observacion, usuario, marca } = req.body;
   let operacion;

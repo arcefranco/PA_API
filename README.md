@@ -1,6 +1,6 @@
 # PA API
 
-API para consultar operaciones por número de teléfono y cargar observaciones sobre ellas, en las bases de datos de cada empresa del grupo.
+API para consultar operaciones (por teléfono, documento o grupo y orden) y cargar observaciones sobre ellas, en las bases de datos de cada empresa del grupo.
 
 Todos los pedidos y respuestas son JSON (`Content-Type: application/json`).
 
@@ -9,6 +9,7 @@ Todos los pedidos y respuestas son JSON (`Content-Type: application/json`).
 - [Autorización](#autorización)
 - [Operaciones](#operaciones)
   - [POST /getOpByTel](#post-getopbytel)
+  - [POST /getOperacion](#post-getoperacion)
   - [POST /postObs](#post-postobs)
 - [Códigos de empresas](#códigos-de-empresas)
 - [Códigos de marcas](#códigos-de-marcas)
@@ -97,6 +98,65 @@ El teléfono se puede enviar en cualquier formato (con o sin guiones, espacios, 
 ]
 ```
 
+### POST /getOperacion
+
+Devuelve las operaciones de una empresa con sus teléfonos. Se busca **por número de documento**, **por grupo y orden**, o **por los tres a la vez**.
+
+**Body**
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `empresa` | número | Obligatorio. Código de la empresa (ver [Códigos de empresas](#códigos-de-empresas)) |
+| `nro_documento` | número | Número de documento del titular. Puede devolver varias operaciones |
+| `grupo` | número | Grupo de la operación. Se envía siempre junto con `orden` |
+| `orden` | número | Orden de la operación. Se envía siempre junto con `grupo` |
+
+Buscar por documento:
+
+```json
+{
+  "empresa": 8,
+  "nro_documento": "30111222"
+}
+```
+
+Buscar por grupo y orden:
+
+```json
+{
+  "empresa": 8,
+  "grupo": 1234,
+  "orden": 56
+}
+```
+
+Buscar por los tres:
+
+```json
+{
+  "empresa": 8,
+  "nro_documento": 30111222,
+  "grupo": 1234,
+  "orden": 56
+}
+```
+
+**Respuesta**: lista de operaciones encontradas (vacía si no hay coincidencias).
+
+```json
+[
+  {
+    "NroDocumento": "30111222",
+    "Grupo": 1234,
+    "Orden": 56,
+    "Telefonos": "(011)4265-3305",
+    "Telefonos2": "1520502258",
+    "Telefonos3": null,
+    "Telefonos4": null
+  }
+]
+```
+
 ### POST /postObs
 
 Carga una observación sobre una operación, identificada por su grupo y orden.
@@ -134,6 +194,8 @@ Carga una observación sobre una operación, identificada por su grupo y orden.
 | Código | Motivo |
 |---|---|
 | 400 | Faltan parámetros obligatorios |
+| 400 | `nro_tel` tiene menos de 8 dígitos (`/getOpByTel`) |
+| 400 | Se envió solo `grupo` o solo `orden` (`/getOperacion`) |
 | 404 | El código de empresa no existe |
 | 404 | No se encontró una operación con ese grupo y orden (`/postObs`) |
 | 500 | Error interno o de base de datos |
